@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ネットワークスペシャリスト 午後CBTシミュレータ (H24〜R06)</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Top Header -->
+  <header class="app-header">
+    <div class="brand-area" id="btnHomeLogo" title="ダッシュボードへ戻る">
+      <span class="brand-badge">NW CBT</span>
+      <span class="brand-title">ネットワークスペシャリスト 午後Ⅰ・午後Ⅱ シミュレータ</span>
+    </div>
+    <div class="header-center" id="headerSessionInfo"></div>
+    <div class="header-right">
+      <button class="btn btn-ghost-dark btn-sm" id="btnNavDashboard">問題一覧・履歴</button>
+      <button class="btn btn-ghost-dark btn-sm" id="btnExportData" title="学習履歴・ブックマーク・マーカーをJSON保存">データ保存/復元</button>
+    </div>
+  </header>
+
+  <main class="main-container">
+    <!-- VIEW 1: Dashboard (Year/Session Selection, Bookmarks, History) -->
+    <section class="view-panel active" id="viewDashboard">
+      <div class="dashboard-wrap">
+        <div class="stats-grid" id="dashboardStats"></div>
+
+        <div class="dashboard-tabs">
+          <button class="tab-btn active" data-tab="tabExams">年度別 過去問一覧（H24〜R06）</button>
+          <button class="tab-btn" data-tab="tabBookmarks">復習ブックマーク (<span id="bookmarkCountBadge">0</span>)</button>
+          <button class="tab-btn" data-tab="tabHistory">解答履歴 (<span id="historyCountBadge">0</span>)</button>
+        </div>
+
+        <!-- Tab 1: Exam List -->
+        <div id="tabExams" class="tab-content">
+          <div class="year-grid" id="examYearGrid"></div>
+        </div>
+
+        <!-- Tab 2: Bookmarks -->
+        <div id="tabBookmarks" class="tab-content" style="display:none;">
+          <div id="bookmarksContainer"></div>
+        </div>
+
+        <!-- Tab 3: History -->
+        <div id="tabHistory" class="tab-content" style="display:none;">
+          <div id="historyContainer"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 2: CBT Split-Screen Simulator -->
+    <section class="view-panel" id="viewSimulator">
+      <!-- Simulator Sub-Toolbar -->
+      <div class="cbt-toolbar">
+        <div class="cbt-toolbar-left">
+          <button class="btn btn-secondary btn-sm" id="btnBackToHome">← 一覧へ戻る</button>
+          <div class="q-Switch-tabs" id="questionSwitchTabs"></div>
+          <button class="btn btn-secondary btn-sm" id="btnSelectExamQuestions" style="display:none;">選択問題を設定</button>
+        </div>
+
+        <div class="cbt-toolbar-center">
+          <div class="marker-bar" title="問題文のテキストをドラッグ選択して蛍光ペンを引けます（クリックで解除）">
+            <span class="marker-label">マーカー:</span>
+            <button class="marker-swatch swatch-yellow active" data-color="yellow" title="黄色マーカー">黄</button>
+            <button class="marker-swatch swatch-pink" data-color="pink" title="ピンクマーカー">桃</button>
+            <button class="marker-swatch swatch-cyan" data-color="cyan" title="水色マーカー">青</button>
+            <button class="marker-swatch swatch-eraser" data-color="none" title="マーカーOFF">無</button>
+            <button class="btn btn-secondary btn-sm" id="btnClearMarks" style="padding:2px 7px;font-size:11px;">全消去</button>
+          </div>
+        </div>
+
+        <div class="cbt-toolbar-right">
+          <div class="timer-box" id="timerBox">
+            <span id="timerText">90:00</span>
+            <button class="btn btn-ghost-dark btn-sm" id="btnToggleTimer" style="padding:2px 8px;font-size:11px;">一時停止</button>
+          </div>
+          <button class="btn btn-secondary btn-sm" id="btnBookmarkQuestion" title="この問題を復習ブックマークに追加">★ 復習登録</button>
+          <button class="btn btn-primary btn-sm" id="btnFinishAndGrade">採点・解説を表示</button>
+        </div>
+      </div>
+
+      <!-- 2-Pane Split Area -->
+      <div class="cbt-split-container" id="splitContainer">
+        <!-- Left Pane: Problem Statement & Figures -->
+        <div class="cbt-left-pane" id="leftPane">
+          <div class="problem-header-banner">
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--text-muted);" id="problemMetaLabel"></div>
+              <h2 class="problem-title-main" id="problemTitleMain"></h2>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="btnShowOverviewModal">出題趣旨・講評・全体解説</button>
+          </div>
+
+          <div class="figure-quick-bar" id="figureQuickBar"></div>
+
+          <div class="problem-body-content" id="problemBodyContent"></div>
+        </div>
+
+        <!-- Draggable Resizer -->
+        <div class="cbt-resizer" id="paneResizer"></div>
+
+        <!-- Right Pane: Sub-questions & Grading -->
+        <div class="cbt-right-pane" id="rightPane">
+          <div class="subq-nav-bar" id="subqNavBar"></div>
+          <div id="scoreSummaryBanner" style="display:none;"></div>
+          <div id="subQuestionsContainer" style="display:flex;flex-direction:column;gap:16px;"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Floating Pinned Figure Viewer -->
+  <div class="floating-fig-modal" id="floatingFigModal">
+    <div class="floating-fig-header" id="floatingFigHeader">
+      <span id="floatingFigTitle">図表ビューア</span>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <button class="btn btn-ghost-dark btn-sm" id="btnZoomOutFig" style="padding:2px 8px;">－</button>
+        <button class="btn btn-ghost-dark btn-sm" id="btnZoomResetFig" style="padding:2px 8px;">100%</button>
+        <button class="btn btn-ghost-dark btn-sm" id="btnZoomInFig" style="padding:2px 8px;">＋</button>
+        <button class="btn btn-ghost-dark btn-sm" id="btnCloseFloatingFig" style="padding:2px 8px;">✕</button>
+      </div>
+    </div>
+    <div class="floating-fig-body">
+      <img id="floatingFigImg" src="" alt="図表" />
+    </div>
+  </div>
+
+  <!-- Modal Dialog (Overview / Question Selection / Data Backup) -->
+  <div class="modal-backdrop" id="appModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <span id="modalTitle">詳細</span>
+        <button class="btn btn-secondary btn-sm" id="btnCloseModal">閉じる</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-footer" id="modalFooter">
+        <button class="btn btn-primary" id="btnModalPrimary" style="display:none;">決定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Load Lightweight Catalog Index First -->
+  <script src="js/index.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
